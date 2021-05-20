@@ -1,5 +1,5 @@
-#ifndef VirtualWire_Config_h
-#define VirtualWire_Config_h
+#ifndef VirtualWireEx_Config_h
+#define VirtualWireEx_Config_h
 //////////////////////////////////////////////////////////////////////////
 //	The following configurations are intented only if VW_PLATFORM == VW_PLATFORM_GENERIC_AVR8
 

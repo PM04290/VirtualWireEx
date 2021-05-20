@@ -235,19 +235,21 @@
 /// \endcode
 /// At the top of your sketch.
 /// 
-#ifndef VirtualWire_h
-#define VirtualWire_h
+#ifndef VirtualWireEx_h
+#define VirtualWireEx_h
 
 #include <stdint.h>
 //#include "VirtualWireEx_Config.h"
 
 //	Currently supported platforms
-#define VW_PLATFORM_ARDUINO 1
-#define VW_PLATFORM_MSP430  2
-#define VW_PLATFORM_STM32   3
-#define VW_PLATFORM_GENERIC_AVR8 4
-#define VW_PLATFORM_UNO32   5
-#define VW_PLATFORM_ESP8266 6
+#define VW_PLATFORM_ARDUINO			1
+#define VW_PLATFORM_MSP430			2
+#define VW_PLATFORM_STM32			3
+#define VW_PLATFORM_GENERIC_AVR8	4
+#define VW_PLATFORM_UNO32			5
+#define VW_PLATFORM_ESP8266			6
+#define VW_PLATFORM_SAMD			7
+
 
 //	Select platform automatically, if possible
 #ifndef VW_PLATFORM
@@ -256,9 +258,11 @@
  #elif defined(__MSP430G2452__) || defined(__MSP430G2553__)
   #define VW_PLATFORM VW_PLATFORM_MSP430
  #elif defined(MCU_STM32F103RE)
-  #define VW_PLATFORM VW_PLATFORM_STM32
+  #define VW_PLATFORM RH_PLATFORM_STM32
  #elif defined MPIDE
   #define VW_PLATFORM VW_PLATFORM_UNO32
+ #elif defined(ARDUINO_ARCH_SAMD)
+  #define VW_PLATFORM VW_PLATFORM_SAMD
  #elif defined(ARDUINO)
   #define VW_PLATFORM VW_PLATFORM_ARDUINO
  #else
@@ -279,6 +283,9 @@
  #include <stdint.h>
  // Defines which timer to use on Maple
  #define MAPLE_TIMER 1
+#elif (VW_PLATFORM == VW_PLATFORM_SAMD)
+  #include <Arduino.h>
+  #include <TimerTCC0.h>
 #elif (VW_PLATFORM == VW_PLATFORM_UNO32)
 #elif (VW_PLATFORM == VW_PLATFORM_ESP8266)
   #include <Arduino.h>

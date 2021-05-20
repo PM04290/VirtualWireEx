@@ -15,7 +15,7 @@
  #elif defined (ESP8266)
   #include "VWutil/crc16.h"
  #else
-  #include <util/crc16.h>
+  #include "VWutil/crc16.h"
  #endif
 #else
  #include "VWutil/crc16.h"
@@ -32,6 +32,7 @@
 #elif (VW_PLATFORM == VW_PLATFORM_STM32)
 	#include <string.h>
 	#include <wirish.h>	
+#elif (VW_PLATFORM == VW_PLATFORM_SAMD)
 #elif (VW_PLATFORM == VW_PLATFORM_GENERIC_AVR8)	
 	#include <avr/io.h>
 	#include <avr/interrupt.h>
@@ -55,7 +56,7 @@
 	// The digital IO pin number of the transmitter data
 	static uint8_t vw_tx_pin = 12;
 	
-#if (RH_PLATFORM == RH_PLATFORM_ESP8266)
+#if (VW_PLATFORM == VW_PLATFORM_ESP8266)
 	uint32_t  _timerIncrement;
 #endif
 
@@ -502,6 +503,21 @@ void vw_setup(uint16_t speed)
     vw_digitalWrite_ptt(vw_ptt_inverted);
 }
 
+#elif (VW_PLATFORM == VW_PLATFORM_SAMD)
+void vw_setup(uint16_t speed)
+{
+    // Set up digital IO pins
+    pinMode(vw_tx_pin, OUTPUT);
+    pinMode(vw_rx_pin, INPUT);
+    pinMode(vw_ptt_pin, OUTPUT);
+    vw_digitalWrite_ptt(vw_ptt_inverted);
+
+    TimerTcc0.initialize(1000000 / speed);
+	
+    void vw_Int_Handler(); // defined below
+    TimerTcc0.attachInterrupt(vw_Int_Handler);
+}
+
 #elif (VW_PLATFORM == VW_PLATFORM_ARDUINO) // Arduino specific
 void vw_setup(uint16_t speed)
 {
@@ -860,39 +876,34 @@ ISR(VW_TIMER_VECTOR)
 }
 
  // LaunchPad, Maple
-#elif (VW_PLATFORM == VW_PLATFORM_MSP430) || (VW_PLATFORM == VW_PLATFORM_STM32)
+#elif (VW_PLATFORM == VW_PLATFORM_MSP430) || (VW_PLATFORM == VW_PLATFORM_STM32) || (VW_PLATFORM == VW_PLATFORM_SAMD)
 void vw_Int_Handler()
 {
-    if (vw_rx_enabled && !vw_tx_enabled)
+  if (vw_rx_enabled && !vw_tx_enabled)
 	vw_rx_sample = vw_digitalRead_rx() ^ vw_rx_inverted;
     
-    // Do transmitter stuff first to reduce transmitter bit jitter due 
-    // to variable receiver processing
-    if (vw_tx_enabled && vw_tx_sample++ == 0)
-    {
+  // Do transmitter stuff first to reduce transmitter bit jitter due 
+  // to variable receiver processing
+  if (vw_tx_enabled && vw_tx_sample++ == 0) {
 	// Send next bit
 	// Symbols are sent LSB first
 	// Finished sending the whole message? (after waiting one bit period 
 	// since the last bit)
-	if (vw_tx_index >= vw_tx_len)
-	{
+	if (vw_tx_index >= vw_tx_len) {
 	    vw_tx_stop();
 	    vw_tx_msg_count++;
+	} else {
+      vw_digitalWrite_tx(vw_tx_buf[vw_tx_index] & (1 << vw_tx_bit++));
+      if (vw_tx_bit >= 6) {
+        vw_tx_bit = 0;
+        vw_tx_index++;
+      }
 	}
-	else
-	{
-	    vw_digitalWrite_tx(vw_tx_buf[vw_tx_index] & (1 << vw_tx_bit++));
-	    if (vw_tx_bit >= 6)
-	    {
-		vw_tx_bit = 0;
-		vw_tx_index++;
-	    }
-	}
-    }
-    if (vw_tx_sample > 7)
+  }
+  if (vw_tx_sample > 7)
 	vw_tx_sample = 0;
     
-    if (vw_rx_enabled && !vw_tx_enabled)
+  if (vw_rx_enabled && !vw_tx_enabled)
 	vw_pll();
 }
 
